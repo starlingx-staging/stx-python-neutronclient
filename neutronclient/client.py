@@ -151,6 +151,7 @@ class HTTPClient(object):
         content_type = kwargs.pop('content_type', None) or 'application/json'
         headers = headers or {}
         headers.setdefault('Accept', content_type)
+        headers.setdefault('wrs-header', 'true')
 
         if body:
             headers.setdefault('Content-Type', content_type)
@@ -313,6 +314,7 @@ class SessionClient(adapter.Adapter):
 
         headers = kwargs.setdefault('headers', {})
         headers.setdefault('Accept', content_type)
+        headers.setdefault('wrs-header', 'true')
 
         # NOTE(dbelova): osprofiler_web.get_trace_id_headers does not add any
         # headers in case if osprofiler is not initialized.

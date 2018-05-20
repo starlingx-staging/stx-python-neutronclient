@@ -273,3 +273,33 @@ class CLITestV20BGPSpeakerJSON(test_cli20.CLITestV20Base):
                 bs_id)
         self._test_list_resources(resources, cmd, base_args=[bs_id],
                                   path=path)
+
+    def _test_add_remove_bgpvpn(self, action, cmd, args):
+        # Add or Remove VPN to/from a BGP Speaker.
+        resource = 'bgp_speaker'
+        subcmd = '%s_bgp_vpn' % action
+        body = {'bgpvpn_id': 'vpnid'}
+        if action == 'add':
+            retval = {'bgpvpn': 'vpnid'}
+            retval = self.client.serialize(retval)
+            expected_code = 200
+        else:
+            retval = None
+            expected_code = 204
+        self._test_update_resource_action(resource, cmd, 'myid',
+                                          subcmd, args, body, expected_code,
+                                          retval)
+
+    def test_add_vpn_to_bgp_speaker(self):
+        # Add VPN to BGP speaker: myid bgpvpn_id=vpnid
+        cmd = bgp_speaker.AddVpnToSpeaker(test_cli20.MyApp(sys.stdout),
+                                          None)
+        args = ['myid', 'vpnid']
+        self._test_add_remove_bgpvpn('add', cmd, args)
+
+    def test_remove_vpn_from_bgp_speaker(self):
+        # Remove VPN from BGP speaker: myid bgpvpn_id=vpnid
+        cmd = bgp_speaker.RemoveVpnFromSpeaker(
+            test_cli20.MyApp(sys.stdout), None)
+        args = ['myid', 'vpnid']
+        self._test_add_remove_bgpvpn('remove', cmd, args)

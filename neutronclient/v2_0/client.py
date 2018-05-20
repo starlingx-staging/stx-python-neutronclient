@@ -253,6 +253,9 @@ class ClientBase(object):
         self.action_prefix = "/v%s" % (self.version)
         self.retry_interval = 1
 
+    def update_password(self, newpass):
+        self.httpclient.password = newpass
+
     def _handle_fault_response(self, status_code, response_body, resp):
         # Create exception with HTTP status code and message
         _logger.debug("Error message: %s", response_body)
@@ -490,6 +493,8 @@ class Client(ClientBase):
     network_path = "/networks/%s"
     ports_path = "/ports"
     port_path = "/ports/%s"
+    qos_path = "/wrs-tm/qoses"
+    qoses_path = "/wrs-tm/qoses/%s"
     subnets_path = "/subnets"
     subnet_path = "/subnets/%s"
     subnetpools_path = "/subnetpools"
@@ -499,6 +504,9 @@ class Client(ClientBase):
     quotas_path = "/quotas"
     quota_path = "/quotas/%s"
     quota_default_path = "/quotas/%s/default"
+    quota_details_path = "/quotas/%s/details.json"
+    settings_path = "/wrs-tenant/settings"
+    setting_path = "/wrs-tenant/settings/%s"
     extensions_path = "/extensions"
     extension_path = "/extensions/%s"
     routers_path = "/routers"
@@ -563,6 +571,10 @@ class Client(ClientBase):
     qos_queue_path = "/qos-queues/%s"
     agents_path = "/agents"
     agent_path = "/agents/%s"
+    hosts_path = "/hosts"
+    host_path = "/hosts/%s"
+    host_bind_path = "/hosts/%s/bind_interface"
+    host_unbind_path = "/hosts/%s/unbind_interface"
     network_gateways_path = "/network-gateways"
     network_gateway_path = "/network-gateways/%s"
     gateway_devices_path = "/gateway-devices"
@@ -647,6 +659,16 @@ class Client(ClientBase):
     bgpvpn_router_associations_path = "/bgpvpn/bgpvpns/%s/router_associations"
     bgpvpn_router_association_path =\
         "/bgpvpn/bgpvpns/%s/router_associations/%s"
+    providernet_types_path = "/wrs-provider/providernet-types"
+    providernets_path = "/wrs-provider/providernets"
+    providernet_path = "/wrs-provider/providernets/%s"
+    providernet_ranges_path = "/wrs-provider/providernet-ranges"
+    providernet_range_path = "/wrs-provider/providernet-ranges/%s"
+    PNET_BINDINGS = "/providernet-bindings"
+    portforwardings_path = "/portforwardings"
+    portforwarding_path = "/portforwardings/%s"
+    providernet_connectivity_tests_path = \
+        "/wrs-provider/providernet-connectivity-tests"
 
     # API has no way to report plurals, so we have to hard code them
     EXTED_PLURALS = {'routers': 'router',
@@ -662,9 +684,13 @@ class Client(ClientBase):
                      'endpoint_groups': 'endpoint_group',
                      'vips': 'vip',
                      'pools': 'pool',
+                     'providernet_types': 'providernet_type',
+                     'providernets': 'providernet',
+                     'providernet_ranges': 'providernet_range',
                      'members': 'member',
                      'health_monitors': 'health_monitor',
                      'quotas': 'quota',
+                     'qoses': 'qos',
                      'service_providers': 'service_provider',
                      'firewall_rules': 'firewall_rule',
                      'firewall_policies': 'firewall_policy',
@@ -704,6 +730,7 @@ class Client(ClientBase):
                      'port_pairs': 'port_pair',
                      'port_pair_groups': 'port_pair_group',
                      'port_chains': 'port_chain',
+                     'portforwardings': 'portforwarding',
                      }
 
     def list_ext(self, collection, path, retrieve_all, **_params):
@@ -742,6 +769,13 @@ class Client(ClientBase):
 
     @debtcollector.renames.renamed_kwarg(
         'tenant_id', 'project_id', replace=True)
+    def show_quota_details(self, project_id, **_params):
+        """Fetch information of a certain project's quotas."""
+        return self.get(self.quota_details_path % (project_id),
+                        params=_params)
+
+    @debtcollector.renames.renamed_kwarg(
+        'tenant_id', 'project_id', replace=True)
     def show_quota_default(self, project_id, **_params):
         """Fetch information of a certain project's default quotas."""
         return self.get(self.quota_default_path % (project_id), params=_params)
@@ -757,6 +791,26 @@ class Client(ClientBase):
     def delete_quota(self, project_id):
         """Delete the specified project's quota values."""
         return self.delete(self.quota_path % (project_id))
+
+    def get_settings_tenant(self, **_params):
+        """Fetch tenant info for following setting operation. """
+        return self.get(self.setting_path % 'tenant', params=_params)
+
+    def list_settings(self, **_params):
+        """Fetch all tenants' settings."""
+        return self.get(self.settings_path, params=_params)
+
+    def show_setting(self, tenant_id, **_params):
+        """Fetch information of a certain tenant's settings."""
+        return self.get(self.setting_path % (tenant_id), params=_params)
+
+    def update_setting(self, tenant_id, body=None):
+        """Update a tenant's settings."""
+        return self.put(self.setting_path % (tenant_id), body=body)
+
+    def delete_setting(self, tenant_id):
+        """Delete the specified tenant's setting values."""
+        return self.delete(self.setting_path % (tenant_id))
 
     def list_extensions(self, **_params):
         """Fetch a list of all extensions on server side."""
@@ -1413,6 +1467,35 @@ class Client(ClientBase):
         """Deletes the specified agent."""
         return self.delete(self.agent_path % (agent))
 
+    def list_hosts(self, **_params):
+        """Fetches hosts running neutron services."""
+        # Pass filters in "params" argument to do_request
+        return self.get(self.hosts_path, params=_params)
+
+    def show_host(self, host, **_params):
+        """Fetches information of a certain host."""
+        return self.get(self.host_path % (host), params=_params)
+
+    def create_host(self, body=None):
+        """Creates a new host record."""
+        return self.post(self.hosts_path, body=body)
+
+    def update_host(self, host, body=None):
+        """Updates availability of a given host."""
+        return self.put(self.host_path % (host), body=body)
+
+    def delete_host(self, host, body=None):
+        """Delete host record and related agents for a given host."""
+        return self.delete(self.host_path % (host), body=body)
+
+    def host_bind_interface(self, host_id, body=None):
+        """Bind interface on host to a set of provider networks."""
+        return self.put(self.host_bind_path % (host_id), body=body)
+
+    def host_unbind_interface(self, host_id, body=None):
+        """Unbind interface on host from all provider networks."""
+        return self.put(self.host_unbind_path % (host_id), body=body)
+
     def list_network_gateways(self, **_params):
         """Retrieve network gateways."""
         return self.get(self.network_gateways_path, params=_params)
@@ -1930,6 +2013,66 @@ class Client(ClientBase):
         return self.list('service_profiles', self.service_profiles_path,
                          retrieve_all, **_params)
 
+    def list_providernet_types(self, retrieve_all=True, **_params):
+        """Fetches a list of all supported provider network types."""
+        # Pass filters in "params" argument to do_request
+
+        return self.list('providernet_types',
+                         self.providernet_types_path, retrieve_all,
+                         **_params)
+
+    def list_providernets(self, retrieve_all=True, **_params):
+        """Fetches a list of all provider networks."""
+        # Pass filters in "params" argument to do_request
+
+        return self.list('providernets', self.providernets_path, retrieve_all,
+                         **_params)
+
+    def list_networks_on_providernet(self, id, **_params):
+        """Fetches a list of networks hosted by provider networks."""
+        return self.get((self.providernet_path + self.PNET_BINDINGS) % id,
+                        params=_params)
+
+    def show_providernet(self, providernet, **_params):
+        """Fetches information of a certain provider network."""
+        return self.get(self.providernet_path % (providernet), params=_params)
+
+    def create_providernet(self, body=None):
+        """Creates a new provider network."""
+        return self.post(self.providernets_path, body=body)
+
+    def update_providernet(self, providernet, body=None):
+        """Updates a provider network."""
+        return self.put(self.providernet_path % (providernet), body=body)
+
+    def delete_providernet(self, providernet):
+        """Deletes the specified provider network."""
+        return self.delete(self.providernet_path % (providernet))
+
+    def list_providernet_ranges(self, retrieve_all=True, **_params):
+        """Fetches a list of all provider network segmentation id ranges."""
+        # Pass filters in "params" argument to do_request
+
+        return self.list('providernet_ranges',
+                         self.providernet_ranges_path, retrieve_all,
+                         **_params)
+
+    def show_providernet_range(self, range, **_params):
+        """Fetches information of a provider network segmentation range."""
+        return self.get(self.providernet_range_path % (range), params=_params)
+
+    def create_providernet_range(self, body=None):
+        """Creates a new provider network segmentation id range."""
+        return self.post(self.providernet_ranges_path, body=body)
+
+    def update_providernet_range(self, range, body=None):
+        """Updates a provider network segmentation id range."""
+        return self.put(self.providernet_range_path % (range), body=body)
+
+    def delete_providernet_range(self, range):
+        """Deletes the specified provider network segmentation id range."""
+        return self.delete(self.providernet_range_path % (range))
+
     def show_service_profile(self, flavor_profile, **_params):
         """Fetches information for a certain Neutron service flavor profile."""
         return self.get(self.service_profile_path % (flavor_profile),
@@ -2008,6 +2151,16 @@ class Client(ClientBase):
         """Removes a network from BGP speaker."""
         return self.put((self.bgp_speaker_path % speaker_id) +
                         "/remove_gateway_network", body=body)
+
+    def add_vpn_to_bgp_speaker(self, speaker_id, body=None):
+        """Adds a VPN to BGP speaker."""
+        return self.put((self.bgp_speaker_path % speaker_id) +
+                        "/add_bgp_vpn", body=body)
+
+    def remove_vpn_from_bgp_speaker(self, speaker_id, body=None):
+        """Removes a VPN from BGP speaker."""
+        return self.put((self.bgp_speaker_path % speaker_id) +
+                        "/remove_bgp_vpn", body=body)
 
     def list_route_advertised_from_bgp_speaker(self, speaker_id, **_params):
         """Fetches a list of all routes advertised by BGP speaker."""
@@ -2171,94 +2324,137 @@ class Client(ClientBase):
         return self.delete(
             self.bgpvpn_router_association_path % (bgpvpn, router_assoc))
 
-    def create_port_pair(self, body=None):
+    def create_sfc_port_pair(self, body=None):
         """Creates a new Port Pair."""
         return self.post(self.sfc_port_pairs_path, body=body)
 
-    def update_port_pair(self, port_pair, body=None):
+    def update_sfc_port_pair(self, port_pair, body=None):
         """Update a Port Pair."""
         return self.put(self.sfc_port_pair_path % port_pair, body=body)
 
-    def delete_port_pair(self, port_pair):
+    def delete_sfc_port_pair(self, port_pair):
         """Deletes the specified Port Pair."""
         return self.delete(self.sfc_port_pair_path % (port_pair))
 
-    def list_port_pair(self, retrieve_all=True, **_params):
+    def list_sfc_port_pairs(self, retrieve_all=True, **_params):
         """Fetches a list of all Port Pairs."""
         return self.list('port_pairs', self.sfc_port_pairs_path, retrieve_all,
                          **_params)
 
-    def show_port_pair(self, port_pair, **_params):
+    def show_sfc_port_pair(self, port_pair, **_params):
         """Fetches information of a certain Port Pair."""
         return self.get(self.sfc_port_pair_path % (port_pair), params=_params)
 
-    def create_port_pair_group(self, body=None):
+    def create_sfc_port_pair_group(self, body=None):
         """Creates a new Port Pair Group."""
         return self.post(self.sfc_port_pair_groups_path, body=body)
 
-    def update_port_pair_group(self, port_pair_group, body=None):
+    def update_sfc_port_pair_group(self, port_pair_group, body=None):
         """Update a Port Pair Group."""
         return self.put(self.sfc_port_pair_group_path % port_pair_group,
                         body=body)
 
-    def delete_port_pair_group(self, port_pair_group):
+    def delete_sfc_port_pair_group(self, port_pair_group):
         """Deletes the specified Port Pair Group."""
         return self.delete(self.sfc_port_pair_group_path % (port_pair_group))
 
-    def list_port_pair_group(self, retrieve_all=True, **_params):
+    def list_sfc_port_pair_groups(self, retrieve_all=True, **_params):
         """Fetches a list of all Port Pair Groups."""
         return self.list('port_pair_groups', self.sfc_port_pair_groups_path,
                          retrieve_all, **_params)
 
-    def show_port_pair_group(self, port_pair_group, **_params):
+    def show_sfc_port_pair_group(self, port_pair_group, **_params):
         """Fetches information of a certain Port Pair Group."""
         return self.get(self.sfc_port_pair_group_path % (port_pair_group),
                         params=_params)
 
-    def create_port_chain(self, body=None):
+    def create_sfc_port_chain(self, body=None):
         """Creates a new Port Chain."""
         return self.post(self.sfc_port_chains_path, body=body)
 
-    def update_port_chain(self, port_chain, body=None):
+    def update_sfc_port_chain(self, port_chain, body=None):
         """Update a Port Chain."""
         return self.put(self.sfc_port_chain_path % port_chain, body=body)
 
-    def delete_port_chain(self, port_chain):
+    def delete_sfc_port_chain(self, port_chain):
         """Deletes the specified Port Chain."""
         return self.delete(self.sfc_port_chain_path % (port_chain))
 
-    def list_port_chain(self, retrieve_all=True, **_params):
+    def list_sfc_port_chains(self, retrieve_all=True, **_params):
         """Fetches a list of all Port Chains."""
         return self.list('port_chains', self.sfc_port_chains_path,
                          retrieve_all, **_params)
 
-    def show_port_chain(self, port_chain, **_params):
+    def show_sfc_port_chain(self, port_chain, **_params):
         """Fetches information of a certain Port Chain."""
         return self.get(self.sfc_port_chain_path % (port_chain),
                         params=_params)
 
-    def create_flow_classifier(self, body=None):
+    def create_sfc_flow_classifier(self, body=None):
         """Creates a new Flow Classifier."""
         return self.post(self.sfc_flow_classifiers_path, body=body)
 
-    def update_flow_classifier(self, flow_classifier, body=None):
+    def update_sfc_flow_classifier(self, flow_classifier, body=None):
         """Update a Flow Classifier."""
         return self.put(self.sfc_flow_classifier_path % flow_classifier,
                         body=body)
 
-    def delete_flow_classifier(self, flow_classifier):
+    def delete_sfc_flow_classifier(self, flow_classifier):
         """Deletes the specified Flow Classifier."""
         return self.delete(self.sfc_flow_classifier_path % (flow_classifier))
 
-    def list_flow_classifier(self, retrieve_all=True, **_params):
+    def list_sfc_flow_classifiers(self, retrieve_all=True, **_params):
         """Fetches a list of all Flow Classifiers."""
         return self.list('flow_classifiers', self.sfc_flow_classifiers_path,
                          retrieve_all, **_params)
 
-    def show_flow_classifier(self, flow_classifier, **_params):
+    def show_sfc_flow_classifier(self, flow_classifier, **_params):
         """Fetches information of a certain Flow Classifier."""
         return self.get(self.sfc_flow_classifier_path % (flow_classifier),
                         params=_params)
+
+    def delete_qos(self, qos):
+        return self.delete(self.qoses_path % (qos))
+
+    def create_qos(self, body=None):
+        return self.post(self.qos_path, body=body)
+
+    def list_qoses(self, retrieve_all=True, **_params):
+        return self.list('qoses', self.qos_path, retrieve_all, **_params)
+
+    def show_qos(self, qos, **_params):
+        return self.get(self.qoses_path % (qos), params=_params)
+
+    def update_qos(self, qos, body=None):
+        return self.put(self.qoses_path % (qos), body=body)
+
+    def delete_portforwarding(self, portforwarding_id):
+        return self.delete(self.portforwarding_path % (portforwarding_id))
+
+    def create_portforwarding(self, body=None):
+        return self.post(self.portforwardings_path, body=body)
+
+    def list_portforwardings(self, retrieve_all=True, **_params):
+        return self.list('portforwardings', self.portforwardings_path,
+                         retrieve_all, **_params)
+
+    def show_portforwarding(self, portforwarding_id, **_params):
+        return self.get(self.portforwarding_path % (portforwarding_id),
+                        params=_params)
+
+    def update_portforwarding(self, portforwarding_id, body=None):
+        return self.put(self.portforwarding_path % (portforwarding_id),
+                        body=body)
+
+    def list_providernet_connectivity_tests(self, **_params):
+        """Lists all connectivity tests"""
+        return self.list('providernet_connectivity_tests',
+                         self.providernet_connectivity_tests_path, True,
+                         **_params)
+
+    def create_providernet_connectivity_test(self, body=None):
+        """Schedules connectivity tests"""
+        return self.post(self.providernet_connectivity_tests_path, body=body)
 
     def __init__(self, **kwargs):
         """Initialize a new client for the Neutron v2.0 API."""

@@ -357,12 +357,16 @@ class NeutronCommand(command.Command):
                     value = '\n'.join(jsonutils.dumps(
                         i, indent=self.json_indent) if isinstance(i, dict)
                         else str(i) for i in v)
+                    value = utils.parse_date(value)
                     data[self.resource][k] = value
                 elif isinstance(v, dict):
                     value = jsonutils.dumps(v, indent=self.json_indent)
+                    value = utils.parse_date(value)
                     data[self.resource][k] = value
                 elif v is None:
                     data[self.resource][k] = ''
+                else:
+                    data[self.resource][k] = utils.parse_date(v)
 
     def add_known_arguments(self, parser):
         pass

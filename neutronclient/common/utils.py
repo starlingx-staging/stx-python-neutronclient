@@ -22,10 +22,16 @@ import functools
 import hashlib
 import logging
 import os
+import re
+
+from datetime import datetime
+
+import dateutil
+from dateutil import parser
+import six
 
 from oslo_utils import encodeutils
 from oslo_utils import importutils
-import six
 
 from neutronclient._i18n import _
 from neutronclient.common import exceptions
@@ -236,3 +242,31 @@ def add_boolean_argument(parser, name, **kwargs):
         choices=['True', 'true', 'False', 'false'],
         default=default,
         **kwargs)
+
+
+def parse_date(string_data):
+    """Parses a date-string into a timezone aware Python datetime."""
+    if not isinstance(string_data, six.string_types):
+        return string_data
+
+    pattern = r'(\d{4}-\d{2}-\d{2}[T ])?\d{2}:\d{2}:\d{2}(\.\d{6})?Z?'
+
+    def convert_date(matchobj):
+        formats = ["%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%d %H:%M:%S.%f",
+                   "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S",
+                   "%Y-%m-%dT%H:%M:%SZ", "%H:%M:%S"]
+        datestring = matchobj.group(0)
+        if datestring:
+            for format in formats:
+                try:
+                    datetime.strptime(datestring, format)
+                    datestring += "+0000"
+                    parsed = parser.parse(datestring)
+                    converted = parsed.astimezone(dateutil.tz.tzlocal())
+                    converted = datetime.strftime(converted, format)
+                    return converted
+                except Exception:
+                    pass
+        return datestring
+
+    return re.sub(pattern, convert_date, string_data)

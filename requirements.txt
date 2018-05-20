@@ -19,3 +19,4 @@ requests>=2.14.2 # Apache-2.0
 simplejson>=2.2.0 # MIT
 six>=1.9.0 # MIT
 Babel!=2.4.0,>=2.3.4 # BSD
+python-dateutil

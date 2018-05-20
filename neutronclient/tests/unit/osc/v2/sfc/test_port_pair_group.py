@@ -51,7 +51,7 @@ class TestCreateSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
         mock.patch(
             'neutronclient.osc.v2.sfc.sfc_port_pair_group._get_id',
             new=_get_id).start()
-        self.neutronclient.create_port_pair_group = mock.Mock(
+        self.neutronclient.create_sfc_port_pair_group = mock.Mock(
             return_value={'port_pair_group': self._port_pair_group})
         self.data = self.get_data()
         # Get the command object to test
@@ -70,7 +70,7 @@ class TestCreateSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         columns, data = (self.cmd.take_action(parsed_args))
-        self.neutronclient.create_port_pair_group.assert_called_once_with({
+        self.neutronclient.create_sfc_port_pair_group.assert_called_once_with({
             'port_pair_group': {
                 'name': self._port_pair_group['name'],
                 'port_pairs': [self._port_pair_group['port_pairs']]}
@@ -92,7 +92,7 @@ class TestCreateSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         columns, data = (self.cmd.take_action(parsed_args))
 
-        self.neutronclient.create_port_pair_group.assert_called_once_with({
+        self.neutronclient.create_sfc_port_pair_group.assert_called_once_with({
             'port_pair_group': {
                 'name': self._port_pair_group['name'],
                 'port_pairs': [self._port_pair_group['port_pairs']],
@@ -113,14 +113,14 @@ class TestDeleteSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
         mock.patch(
             'neutronclient.osc.v2.sfc.sfc_port_pair_group._get_id',
             new=_get_id).start()
-        self.neutronclient.delete_port_pair_group = mock.Mock(
+        self.neutronclient.delete_sfc_port_pair_group = mock.Mock(
             return_value=None)
         self.cmd = sfc_port_pair_group.DeleteSfcPortPairGroup(self.app,
                                                               self.namespace)
 
     def test_delete_port_pair_group(self):
         client = self.app.client_manager.neutronclient
-        mock_port_pair_group_delete = client.delete_port_pair_group
+        mock_port_pair_group_delete = client.delete_sfc_port_pair_group
         arglist = [
             self._port_pair_group[0]['id'],
         ]
@@ -162,19 +162,20 @@ class TestListSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
             'neutronclient.osc.v2.sfc.sfc_port_pair_group._get_id',
             new=_get_id).start()
 
-        self.neutronclient.list_port_pair_group = mock.Mock(
+        self.neutronclient.list_sfc_port_pair_groups = mock.Mock(
             return_value={'port_pair_groups': self._ppgs}
         )
         # Get the command object to test
         self.cmd = sfc_port_pair_group.ListSfcPortPairGroup(self.app,
                                                             self.namespace)
 
-    def test_list_port_pair_group(self):
+    def test_list_port_pair_groups(self):
         arglist = []
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         columns = self.cmd.take_action(parsed_args)[0]
-        ppgs = self.neutronclient.list_port_pair_group()['port_pair_groups']
+        ppgs = self.neutronclient \
+            .list_sfc_port_pair_groups()['port_pair_groups']
         ppg = ppgs[0]
         data = [
             ppg['id'],
@@ -188,7 +189,8 @@ class TestListSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
     def test_list_with_long_option(self):
         arglist = ['--long']
         verifylist = [('long', True)]
-        ppgs = self.neutronclient.list_port_pair_group()['port_pair_groups']
+        ppgs = self.neutronclient \
+            .list_sfc_port_pair_groups()['port_pair_groups']
         ppg = ppgs[0]
         data = [
             ppg['id'],
@@ -208,7 +210,7 @@ class TestSetSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
     resource = _port_pair_group
     res = 'port_pair_group'
     _port_pair_group_name = _port_pair_group['name']
-    ppg_pp = _port_pair_group['port_pairs']
+    ppg_pps = _port_pair_group['port_pairs']
     _port_pair_group_id = _port_pair_group['id']
 
     def setUp(self):
@@ -217,9 +219,9 @@ class TestSetSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
         mock.patch(
             'neutronclient.osc.v2.sfc.sfc_port_pair_group._get_id',
             new=_get_id).start()
-        self.neutronclient.update_port_pair_group = mock.Mock(
+        self.neutronclient.update_sfc_port_pair_group = mock.Mock(
             return_value=None)
-        self.mocked = self.neutronclient.update_port_pair_group
+        self.mocked = self.neutronclient.update_sfc_port_pair_group
         self.cmd = sfc_port_pair_group.SetSfcPortPairGroup(self.app,
                                                            self.namespace)
 
@@ -243,7 +245,7 @@ class TestSetSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
             if self.neutronclient.find_resource.call_count == 3:
                 self.neutronclient.find_resource.assert_called_with(
                     self.res, target, cmd_resource='sfc_port_pair_group')
-                return {'port_pairs': self.ppg_pp}
+                return {'port_pairs': self.ppg_pps}
 
         self.neutronclient.find_resource.side_effect = _mock_port_pair_group
 
@@ -258,14 +260,15 @@ class TestSetSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         result = self.cmd.take_action(parsed_args)
-        expect = {'port_pairs': sorted([self.ppg_pp, port_pair1, port_pair2])}
+        expect = {'port_pairs':
+                  sorted(self.ppg_pps + [port_pair1, port_pair2])}
         self.mocked.assert_called_once_with(target, {self.res: expect})
         self.assertEqual(3, self.neutronclient.find_resource.call_count)
         self.assertIsNone(result)
 
     def test_set_no_port_pair(self):
         client = self.app.client_manager.neutronclient
-        mock_port_pair_group_update = client.update_port_pair_group
+        mock_port_pair_group_update = client.update_sfc_port_pair_group
         arglist = [
             self._port_pair_group_name,
             '--name', 'name_updated',
@@ -317,7 +320,7 @@ class TestShowSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
             'neutronclient.osc.v2.sfc.sfc_port_pair_group._get_id',
             new=_get_id).start()
 
-        self.neutronclient.show_port_pair_group = mock.Mock(
+        self.neutronclient.show_sfc_port_pair_group = mock.Mock(
             return_value=self._port_pair_group
         )
         self.cmd = sfc_port_pair_group.ShowSfcPortPairGroup(self.app,
@@ -325,7 +328,7 @@ class TestShowSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
 
     def test_show_port_pair_group(self):
         client = self.app.client_manager.neutronclient
-        mock_port_pair_group_show = client.show_port_pair_group
+        mock_port_pair_group_show = client.show_sfc_port_pair_group
         arglist = [
             self._port_pair_group_id,
         ]
@@ -354,9 +357,9 @@ class TestUnsetSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
         mock.patch(
             'neutronclient.osc.v2.sfc.sfc_port_pair_group._get_id',
             new=_get_id).start()
-        self.neutronclient.update_port_pair_group = mock.Mock(
+        self.neutronclient.update_sfc_port_pair_group = mock.Mock(
             return_value=None)
-        self.mocked = self.neutronclient.update_port_pair_group
+        self.mocked = self.neutronclient.update_sfc_port_pair_group
         self.cmd = sfc_port_pair_group.UnsetSfcPortPairGroup(
             self.app, self.namespace)
 
@@ -400,13 +403,13 @@ class TestUnsetSfcPortPairGroup(fakes.TestNeutronClientOSCV2):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         result = self.cmd.take_action(parsed_args)
-        expect = {'port_pairs': sorted([self.ppg_pp])}
+        expect = {'port_pairs': sorted(self.ppg_pp)}
         self.mocked.assert_called_once_with(target, {self.res: expect})
         self.assertIsNone(result)
 
     def test_unset_all_port_pair(self):
         client = self.app.client_manager.neutronclient
-        mock_port_pair_group_update = client.update_port_pair_group
+        mock_port_pair_group_update = client.update_sfc_port_pair_group
         arglist = [
             self._port_pair_group_name,
             '--all-port-pair',

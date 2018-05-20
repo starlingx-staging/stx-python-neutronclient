@@ -79,7 +79,7 @@ class CreateSfcPortPair(command.ShowOne):
         client = self.app.client_manager.neutronclient
         attrs = _get_common_attrs(self.app.client_manager, parsed_args)
         body = {resource: attrs}
-        obj = client.create_port_pair(body)[resource]
+        obj = client.create_sfc_port_pair(body)[resource]
         columns, display_columns = nc_osc_utils.get_columns(obj, _attr_map)
         data = utils.get_dict_properties(obj, columns)
         return display_columns, data
@@ -102,7 +102,7 @@ class DeleteSfcPortPair(command.Command):
         client = self.app.client_manager.neutronclient
         port_pair_id = _get_id(client, parsed_args.port_pair, resource)
         try:
-            client.delete_port_pair(port_pair_id)
+            client.delete_sfc_port_pair(port_pair_id)
         except Exception as e:
             msg = (_("Failed to delete port pair with name "
                      "or ID '%(port_pair)s': %(e)s")
@@ -124,7 +124,7 @@ class ListSfcPortPair(command.Lister):
 
     def take_action(self, parsed_args):
         client = self.app.client_manager.neutronclient
-        data = client.list_port_pair()
+        data = client.list_sfc_port_pairs()
         headers, columns = nc_osc_utils.get_column_definitions(
             _attr_map, long_listing=parsed_args.long)
         return (headers,
@@ -160,7 +160,7 @@ class SetSfcPortPair(command.Command):
                                   is_create=False)
         body = {resource: attrs}
         try:
-            client.update_port_pair(port_pair_id, body)
+            client.update_sfc_port_pair(port_pair_id, body)
         except Exception as e:
             msg = (_("Failed to update port pair '%(port_pair)s': %(e)s")
                    % {'port_pair': parsed_args.port_pair, 'e': e})
@@ -182,7 +182,7 @@ class ShowSfcPortPair(command.ShowOne):
     def take_action(self, parsed_args):
         client = self.app.client_manager.neutronclient
         port_pair_id = _get_id(client, parsed_args.port_pair, resource)
-        obj = client.show_port_pair(port_pair_id)[resource]
+        obj = client.show_sfc_port_pair(port_pair_id)[resource]
         columns, display_columns = nc_osc_utils.get_columns(obj, _attr_map)
         data = utils.get_dict_properties(obj, columns)
         return display_columns, data
@@ -206,9 +206,22 @@ def _get_attrs(client_manager, attrs, parsed_args):
     if parsed_args.egress is not None:
         attrs['egress'] = _get_id(client_manager.neutronclient,
                                   parsed_args.egress, 'port')
-    if 'service_function_parameters' in parsed_args:
-        attrs['service_function_parameters'] = (
+    if parsed_args.service_function_parameters is not None:
+        attrs['service_function_parameters'] = _get_service_function_params(
             parsed_args.service_function_parameters)
+
+
+def _get_service_function_params(sf_params):
+    attrs = {}
+    for sf_param in sf_params:
+        if 'correlation' in sf_param:
+            if sf_param['correlation'] == 'None':
+                attrs['correlation'] = None
+            else:
+                attrs['correlation'] = sf_param['correlation']
+        if 'weight' in sf_param:
+            attrs['weight'] = sf_param['weight']
+    return attrs
 
 
 def _get_id(client, id_or_name, resource):

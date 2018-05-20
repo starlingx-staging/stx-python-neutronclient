@@ -74,7 +74,7 @@ class CreateSfcPortPairGroup(command.ShowOne):
         client = self.app.client_manager.neutronclient
         attrs = _get_common_attrs(self.app.client_manager, parsed_args)
         body = {resource: attrs}
-        obj = client.create_port_pair_group(body)[resource]
+        obj = client.create_sfc_port_pair_group(body)[resource]
         columns, display_columns = nc_osc_utils.get_columns(obj, _attr_map)
         data = utils.get_dict_properties(obj, columns)
         return display_columns, data
@@ -97,7 +97,7 @@ class DeleteSfcPortPairGroup(command.Command):
         client = self.app.client_manager.neutronclient
         ppg_id = _get_id(client,  parsed_args.port_pair_group, resource)
         try:
-            client.delete_port_pair_group(ppg_id)
+            client.delete_sfc_port_pair_group(ppg_id)
         except Exception as e:
             msg = (_("Failed to delete port pair group with name "
                      "or ID '%(ppg)s': %(e)s")
@@ -120,7 +120,7 @@ class ListSfcPortPairGroup(command.Lister):
 
     def take_action(self, parsed_args):
         client = self.app.client_manager.neutronclient
-        data = client.list_port_pair_group()
+        data = client.list_sfc_port_pair_groups()
         headers, columns = nc_osc_utils.get_column_definitions(
             _attr_map, long_listing=parsed_args.long)
         return (headers,
@@ -174,13 +174,13 @@ class SetSfcPortPairGroup(command.Command):
             if parsed_args.no_port_pair:
                 existing = []
             else:
-                existing = [client.find_resource(
+                existing = client.find_resource(
                     resource, parsed_args.port_pair_group,
-                    cmd_resource='sfc_port_pair_group')['port_pairs']]
+                    cmd_resource='sfc_port_pair_group')['port_pairs']
             attrs['port_pairs'] = sorted(list(set(existing) | set(added)))
         body = {resource: attrs}
         try:
-            client.update_port_pair_group(ppg_id, body)
+            client.update_sfc_port_pair_group(ppg_id, body)
         except Exception as e:
             msg = (_("Failed to update port pair group '%(ppg)s': %(e)s")
                    % {'ppg': parsed_args.port_pair_group, 'e': e})
@@ -202,7 +202,7 @@ class ShowSfcPortPairGroup(command.ShowOne):
     def take_action(self, parsed_args):
         client = self.app.client_manager.neutronclient
         ppg_id = _get_id(client, parsed_args.port_pair_group, resource)
-        obj = client.show_port_pair_group(ppg_id)[resource]
+        obj = client.show_sfc_port_pair_group(ppg_id)[resource]
         columns, display_columns = nc_osc_utils.get_columns(obj, _attr_map)
         data = utils.get_dict_properties(obj, columns)
         return display_columns, data
@@ -236,9 +236,9 @@ class UnsetSfcPortPairGroup(command.Command):
         ppg_id = _get_id(client, parsed_args.port_pair_group, resource)
         attrs = {}
         if parsed_args.port_pairs:
-            existing = [client.find_resource(
+            existing = client.find_resource(
                 resource, parsed_args.port_pair_group,
-                cmd_resource='sfc_port_pair_group')['port_pairs']]
+                cmd_resource='sfc_port_pair_group')['port_pairs']
             for pp in parsed_args.port_pairs:
                 removed = [client.find_resource(
                     'port_pair', pp, cmd_resource='sfc_port_pair')['id']]
@@ -247,7 +247,7 @@ class UnsetSfcPortPairGroup(command.Command):
             attrs['port_pairs'] = []
         body = {resource: attrs}
         try:
-            client.update_port_pair_group(ppg_id, body)
+            client.update_sfc_port_pair_group(ppg_id, body)
         except Exception as e:
             msg = (_("Failed to unset port pair group '%(ppg)s': %(e)s")
                    % {'ppg': parsed_args.port_pair_group, 'e': e})
@@ -257,8 +257,8 @@ class UnsetSfcPortPairGroup(command.Command):
 def _get_ppg_param(attrs, ppg):
     attrs['port_pair_group_parameters'] = {}
     for key, value in ppg.items():
-        if key == 'lb_fields':
-            attrs['port_pair_group_parameters'][key] = ([
+        if key == 'lb-fields':
+            attrs['port_pair_group_parameters']['lb_fields'] = ([
                 field for field in value.split('&') if field])
         else:
             attrs['port_pair_group_parameters'][key] = value
@@ -281,8 +281,7 @@ def _get_common_attrs(client_manager, parsed_args, is_create=True):
 
 
 def _get_attrs(attrs, parsed_args):
-    if ('port_pair_group_parameters' in parsed_args and
-            parsed_args.port_pair_group_parameters is not None):
+    if parsed_args.port_pair_group_parameters is not None:
         attrs['port_pair_group_parameters'] = (
             _get_ppg_param(attrs, parsed_args.port_pair_group_parameters))
 

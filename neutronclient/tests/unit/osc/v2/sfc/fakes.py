@@ -105,7 +105,7 @@ class FakeSfcPortPairGroup(object):
             'group_id': uuidutils.generate_uuid(),
             'name': 'port-pair-group-name',
             'description': 'description',
-            'port_pairs': uuidutils.generate_uuid(),
+            'port_pairs': [uuidutils.generate_uuid()],
             'port_pair_group_parameters': '{"lb_fields": []}',
             'project_id': uuidutils.generate_uuid()
         }
@@ -207,8 +207,8 @@ class FakeSfcPortChain(object):
             'chain_id': uuidutils.generate_uuid(),
             'name': 'port-chain-name',
             'description': 'description',
-            'port_pair_groups': uuidutils.generate_uuid(),
-            'flow_classifiers': uuidutils.generate_uuid(),
+            'port_pair_groups': [uuidutils.generate_uuid()],
+            'flow_classifiers': [uuidutils.generate_uuid()],
             'chain_parameters': '{"correlation": mpls}',
             'project_id': uuidutils.generate_uuid(),
         }
