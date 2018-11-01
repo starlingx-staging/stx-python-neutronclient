@@ -505,8 +505,6 @@ class Client(ClientBase):
     quota_path = "/quotas/%s"
     quota_default_path = "/quotas/%s/default"
     quota_details_path = "/quotas/%s/details.json"
-    settings_path = "/wrs-tenant/settings"
-    setting_path = "/wrs-tenant/settings/%s"
     extensions_path = "/extensions"
     extension_path = "/extensions/%s"
     routers_path = "/routers"
@@ -791,26 +789,6 @@ class Client(ClientBase):
     def delete_quota(self, project_id):
         """Delete the specified project's quota values."""
         return self.delete(self.quota_path % (project_id))
-
-    def get_settings_tenant(self, **_params):
-        """Fetch tenant info for following setting operation. """
-        return self.get(self.setting_path % 'tenant', params=_params)
-
-    def list_settings(self, **_params):
-        """Fetch all tenants' settings."""
-        return self.get(self.settings_path, params=_params)
-
-    def show_setting(self, tenant_id, **_params):
-        """Fetch information of a certain tenant's settings."""
-        return self.get(self.setting_path % (tenant_id), params=_params)
-
-    def update_setting(self, tenant_id, body=None):
-        """Update a tenant's settings."""
-        return self.put(self.setting_path % (tenant_id), body=body)
-
-    def delete_setting(self, tenant_id):
-        """Delete the specified tenant's setting values."""
-        return self.delete(self.setting_path % (tenant_id))
 
     def list_extensions(self, **_params):
         """Fetch a list of all extensions on server side."""
