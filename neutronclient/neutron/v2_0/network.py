@@ -192,9 +192,6 @@ class CreateNetwork(neutronV20.CreateCommand, qos_policy.CreateQosPolicyMixin):
         parser.add_argument(
             '--description',
             help=_('Description of network.'))
-        parser.add_argument(
-            '--wrs-tm:qos', dest='wrs_qos',
-            help=argparse.SUPPRESS)
 
         self.add_arguments_qos_policy(parser)
         availability_zone.add_az_hint_argument(parser, self.resource)
@@ -213,8 +210,6 @@ class CreateNetwork(neutronV20.CreateCommand, qos_policy.CreateQosPolicyMixin):
         self.args2body_qos_policy(parsed_args, body)
         availability_zone.args2body_az_hint(parsed_args, body)
         dns.args2body_dns_create(parsed_args, body, 'domain')
-        if parsed_args.wrs_qos:
-            body['wrs-tm:qos'] = parsed_args.wrs_qos
         return {'network': body}
 
 
@@ -238,21 +233,10 @@ class UpdateNetwork(neutronV20.UpdateCommand, qos_policy.UpdateQosPolicyMixin):
             help=_('Description of this network.'))
         self.add_arguments_qos_policy(parser)
         dns.add_dns_argument_update(parser, self.resource, 'domain')
-        parser.add_argument(
-            '--no-qos',
-            dest='disable_qos', action='store_true',
-            help=_('Delete network qos'))
-        parser.add_argument(
-            '--wrs-tm:qos', dest='wrs_qos',
-            help=argparse.SUPPRESS)
 
     def args2body(self, parsed_args):
         body = {}
         args2body_common(body, parsed_args)
         self.args2body_qos_policy(parsed_args, body)
         dns.args2body_dns_update(parsed_args, body, 'domain')
-        if parsed_args.wrs_qos:
-            body['wrs-tm:qos'] = parsed_args.wrs_qos
-        if parsed_args.disable_qos:
-            body['wrs-tm:qos'] = None
         return {'network': body}

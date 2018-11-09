@@ -64,9 +64,6 @@ def _add_updatable_args(parser):
         '--device_owner',
         help=argparse.SUPPRESS)
     parser.add_argument(
-        '--wrs-tm:qos', dest='wrs_qos',
-        help=argparse.SUPPRESS)
-    parser.add_argument(
         '--wrs-binding:vif_model', dest='wrs_vif_model',
         help=argparse.SUPPRESS)
 
@@ -75,8 +72,6 @@ def _updatable_args2body(parsed_args, body, client):
     neutronV20.update_dict(parsed_args, body,
                            ['device_id', 'device_owner', 'name',
                             'description'])
-    if parsed_args.wrs_qos:
-        body['wrs-tm:qos'] = parsed_args.wrs_qos
     if parsed_args.wrs_vif_model:
         body['wrs-binding:vif_model'] = parsed_args.wrs_vif_model
     ips = []
@@ -329,10 +324,6 @@ class UpdatePort(neutronV20.UpdateCommand, UpdatePortSecGroupMixin,
             '--admin_state_up',
             choices=['True', 'False'],
             help=argparse.SUPPRESS)
-        parser.add_argument(
-            '--no-qos',
-            dest='disable_qos', action='store_true',
-            help=_('Delete QoS'))
         self.add_arguments_secgroup(parser)
         self.add_arguments_extradhcpopt(parser)
         self.add_arguments_qos_policy(parser)
@@ -351,7 +342,5 @@ class UpdatePort(neutronV20.UpdateCommand, UpdatePortSecGroupMixin,
         self.args2body_qos_policy(parsed_args, body)
         self.args2body_allowedaddresspairs(parsed_args, body)
         dns.args2body_dns_update(parsed_args, body, 'name')
-        if parsed_args.disable_qos:
-            body["wrs-tm:qos"] = None
 
         return {'port': body}

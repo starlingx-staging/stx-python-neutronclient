@@ -493,8 +493,6 @@ class Client(ClientBase):
     network_path = "/networks/%s"
     ports_path = "/ports"
     port_path = "/ports/%s"
-    qos_path = "/wrs-tm/qoses"
-    qoses_path = "/wrs-tm/qoses/%s"
     subnets_path = "/subnets"
     subnet_path = "/subnets/%s"
     subnetpools_path = "/subnetpools"
@@ -2390,21 +2388,6 @@ class Client(ClientBase):
         """Fetches information of a certain Flow Classifier."""
         return self.get(self.sfc_flow_classifier_path % (flow_classifier),
                         params=_params)
-
-    def delete_qos(self, qos):
-        return self.delete(self.qoses_path % (qos))
-
-    def create_qos(self, body=None):
-        return self.post(self.qos_path, body=body)
-
-    def list_qoses(self, retrieve_all=True, **_params):
-        return self.list('qoses', self.qos_path, retrieve_all, **_params)
-
-    def show_qos(self, qos, **_params):
-        return self.get(self.qoses_path % (qos), params=_params)
-
-    def update_qos(self, qos, body=None):
-        return self.put(self.qoses_path % (qos), body=body)
 
     def delete_portforwarding(self, portforwarding_id):
         return self.delete(self.portforwarding_path % (portforwarding_id))
