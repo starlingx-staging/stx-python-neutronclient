@@ -20,9 +20,6 @@ TYPE_LONG = "long"
 TYPE_FLOAT = "float"
 TYPE_LIST = "list"
 TYPE_DICT = "dict"
-TYPE_QOS_DSCP = "dscp"
-TYPE_QOS_RATELIMIT = "ratelimit"
-TYPE_QOS_SCHEDULER = "scheduler"
 
 PLURALS = {'networks': 'network',
            'ports': 'port',
