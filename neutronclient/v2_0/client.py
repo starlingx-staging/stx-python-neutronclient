@@ -686,7 +686,6 @@ class Client(ClientBase):
                      'members': 'member',
                      'health_monitors': 'health_monitor',
                      'quotas': 'quota',
-                     'qoses': 'qos',
                      'service_providers': 'service_provider',
                      'firewall_rules': 'firewall_rule',
                      'firewall_policies': 'firewall_policy',
